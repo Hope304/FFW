@@ -8,6 +8,8 @@ import FFWXaScreen from '../screens/FFW/FFWXScreen';
 import FFWScreen from '../screens/FFW/FFWScreen';
 import MapScreen from '../screens/map/Map';
 import SelectWMSLayerScreen from '../screens/SelectWMSLayer';
+import ListFirePoint from '../screens/ListFirePoint';
+import DetailFirePoint from '../screens/DetailFirePoint';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -28,7 +30,9 @@ const StackNav = () => {
       <Stack.Screen name="FFWXa" component={FFWXaScreen} options={{ title: "Danh sách cấp cháy" }} />
       <Stack.Screen name="FFW" component={FFWScreen} options={{ title: "Thông tin chi tiết" }} />
       <Stack.Screen name="MapScreen" component={MapScreen} options={{ title: "Bản đồ" }} />
-      <Stack.Screen name="SelectWMSLayerScreen" component={SelectWMSLayerScreen} options={{ title: "Bản Thêm lớp bản đồ WMS" }} />
+      <Stack.Screen name="SelectWMSLayerScreen" component={SelectWMSLayerScreen} options={{ title: "Thêm lớp bản đồ WMS" }} />
+      <Stack.Screen name="ListFirePoint" component={ListFirePoint} options={{ title: "Danh sách điểm cháy" }} />
+      <Stack.Screen name="DetailFirePoint" component={DetailFirePoint} options={{ title: "Chi tiết điểm cháy" }} />
     </Stack.Navigator>
   );
 }

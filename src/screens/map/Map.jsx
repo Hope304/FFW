@@ -15,7 +15,7 @@ const MapScreen = ({ navigation }) => {
           <Text>Mbtiles</Text>
         </Pressable>
         <Spacer />
-        <Pressable cursor="pointer" py="5" flex={1} onPress={() => console.log("Điểm cháy")}>
+        <Pressable cursor="pointer" py="5" flex={1} onPress={() => navigation.navigate("ListFirePoint")}>
           <Text>Điểm cháy</Text>
         </Pressable>
         <Spacer />
