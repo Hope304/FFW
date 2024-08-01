@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {View, StyleSheet, TouchableOpacity, Platform} from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import {
   Image,
   Text,
@@ -29,10 +29,10 @@ import {
   formatDate,
   formatDateToPost,
 } from '../untils/dateTimeFunc';
-import {getFirePointDate} from '../redux/apiRequest';
+import { getFirePointDate } from '../redux/apiRequest';
 // import { mainURL } from "../untils/Variable";
 
-const ListFirePoint = ({navigation}) => {
+const ListFirePoint = ({ navigation }) => {
   const [groupValues, setGroupValues] = useState([]);
   const [toggleDatePicker, setToggleDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,16 +72,20 @@ const ListFirePoint = ({navigation}) => {
   };
 
   const handleDownData = async () => {
-    console.log('get');
     // setRefresh(true);
     try {
       const data = {
         dateStart: formatDateToPost(startDay),
         dateEnd: formatDateToPost(endDay),
       };
-      const res = await getFirePointDate(data);
-      console.log(res.length);
-      setFirePoint(res);
+      if (compareDate(startDay, endDay)) {
+        const res = await getFirePointDate(data);
+        console.log(res.length);
+        setFirePoint(res);
+        setLoadData(true);
+      } else {
+        console.log("ko hợp lệ")
+      }
       // setRefresh(false);
     } catch (error) {
       console.log(error);
@@ -115,12 +119,12 @@ const ListFirePoint = ({navigation}) => {
                 value={isChecked}
                 accessibilityLabel="choose an option">
                 <VStack space={4} width="full">
-                  <Box style={styles.checkBox}>
+                  <Box>
                     <Checkbox value="1" my={1}>
                       Dữ liệu cháy trong 24h qua
                     </Checkbox>
                   </Box>
-                  <Box style={styles.checkBox}>
+                  <Box>
                     <Checkbox value="2" my={1}>
                       Lịch sử điểm cháy
                     </Checkbox>
@@ -145,7 +149,9 @@ const ListFirePoint = ({navigation}) => {
                         _dark={{
                           borderColor: 'muted.50',
                         }}
-                        borderColor="muted.300">
+                        borderColor="muted.300"
+                        padding={3}
+                      >
                         <Text>{startDay}</Text>
                       </Box>
                       <Image
@@ -160,7 +166,28 @@ const ListFirePoint = ({navigation}) => {
                       setCheckPick(false);
                       setToggleDatePicker(true);
                     }}>
-                    <Text>{endDay}</Text>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between">
+                      <Box
+                        alignItems="center"
+                        flex={1}
+                        borderWidth="1"
+                        _dark={{
+                          borderColor: 'muted.50',
+                        }}
+                        borderColor="muted.300"
+                        padding={3}
+                      >
+                        <Text>{endDay}</Text>
+                      </Box>
+                      <Image
+                        source={require('../assets/images/calendar.png')}
+                        alt="Alternate Text"
+                        size="xs"
+                      />
+                    </Stack>
                   </Pressable>
                 </VStack>
               )}
@@ -173,11 +200,11 @@ const ListFirePoint = ({navigation}) => {
                 }}
               />
               {!isLoadData ? (
-                <Button w="100%" size="lg" onPress={() => handleDownData()}>
+                <Button w="100%" size="lg" shadow="3" onPress={handleDownData}>
                   Tải dữ liệu điểm cháy
                 </Button>
               ) : (
-                <Button w="100%" size="lg" onPress={handDownData}>
+                <Button w="100%" size="lg" shadow="3" onPress={handDownData}>
                   Mở trong bản đồ
                 </Button>
               )}
@@ -194,7 +221,7 @@ const ListFirePoint = ({navigation}) => {
             <Box marginTop={4}>
               <FlatList
                 data={firePoint}
-                renderItem={({item}) => (
+                renderItem={({ item }) => (
                   <Pressable
                     onPress={() => navigation.navigate('DetailFirePoint', item)}
                     borderBottomWidth="1"
@@ -240,34 +267,34 @@ const ListFirePoint = ({navigation}) => {
                           {item.properties.XACMINH == 1
                             ? ' Chưa xác minh'
                             : item.properties.XACMINH == 2
-                            ? ' Xác minh là cháy rừng'
-                            : item.properties.XACMINH == 3
-                            ? ' Xác minh không phải cháy rừng'
-                            : ' Xác minh có cháy nhưng không phải cháy rừng'}
+                              ? ' Xác minh là cháy rừng'
+                              : item.properties.XACMINH == 3
+                                ? ' Xác minh không phải cháy rừng'
+                                : ' Xác minh có cháy nhưng không phải cháy rừng'}
                         </Heading>
-                        <Text style={{fontSize: 12}}>
+                        <Text style={{ fontSize: 12 }}>
                           Huyện: {item.properties.HUYEN}
                         </Text>
-                        <Text style={{fontSize: 12}}>
+                        <Text style={{ fontSize: 12 }}>
                           Xã: {item.properties.XA}
                         </Text>
-                        <Text style={{fontSize: 12}}>
+                        <Text style={{ fontSize: 12 }}>
                           Thời gian ghi nhận: {item.properties.ACQ_DATE}
                         </Text>
-                        <View style={{flexDirection: 'row'}}>
-                          <Text style={{fontSize: 12}}>
+                        <View style={{ flexDirection: 'row' }}>
+                          <Text style={{ fontSize: 12 }}>
                             Tiểu khu: {item.properties.TIEUKHU}
                           </Text>
-                          <Text style={{fontSize: 12}}>
+                          <Text style={{ fontSize: 12 }}>
                             {' '}
                             - Khoảnh: {item.properties.KHOANH}
                           </Text>
-                          <Text style={{fontSize: 12}}>
+                          <Text style={{ fontSize: 12 }}>
                             {' '}
                             - Lô: {item.properties.LO}
                           </Text>
                         </View>
-                        <Text style={{fontSize: 12}}>
+                        <Text style={{ fontSize: 12 }}>
                           Độ tin cậy: {item.properties.CONFIDENCE}
                         </Text>
                       </VStack>
@@ -284,44 +311,6 @@ const ListFirePoint = ({navigation}) => {
   );
 };
 
-const styles = StyleSheet.create({
-  checkBox: {
-    paddingBottom: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#c9c9c9',
-    borderWidth: 0,
-  },
-  lable: {
-    fontWeight: 'bold',
-    textAlign: 'left',
-    fontSize: 16,
-    color: 'red',
-  },
-  content: {
-    paddingLeft: 10,
-  },
-  comfirm: {
-    marginHorizontal: 15,
-    backgroundColor: '#007bff',
-    borderRadius: 5,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 10,
-    flexDirection: 'row',
-  },
-  comfirmText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  listStyle: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#c9c9c9',
-    borderWidth: 0,
-    marginRight: 20,
-  },
-});
+
 
 export default ListFirePoint;
