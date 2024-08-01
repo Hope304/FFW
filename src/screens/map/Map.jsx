@@ -1,15 +1,40 @@
-import { Box, Button, Center, HStack, Icon, Image, Pressable, Spacer, Text, View } from "native-base";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import Colors from "../../contans/Colors";
-import { Dimensions, PermissionsAndroid, PixelRatio, Platform, StyleSheet } from "react-native";
-import MapView, { Geojson, MAP_TYPES, PROVIDER_GOOGLE } from "react-native-maps";
-import { VNCoor } from "../../untils/Variable";
-import Dimension from "../../contans/Dimension";
-import { FloatingAction } from "react-native-floating-action";
+import {
+  Box,
+  Button,
+  Center,
+  HStack,
+  Icon,
+  Image,
+  Pressable,
+  Spacer,
+  Text,
+  View,
+} from 'native-base';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import Colors from '../../contans/Colors';
+import {
+  Dimensions,
+  PermissionsAndroid,
+  PixelRatio,
+  Platform,
+  StyleSheet,
+} from 'react-native';
+import MapView, {Geojson, MAP_TYPES, PROVIDER_GOOGLE} from 'react-native-maps';
+import {defaultProjection, VNCoor} from '../../untils/Variable';
+import Dimension from '../../contans/Dimension';
+import {FloatingAction} from 'react-native-floating-action';
 import Geolocation from 'react-native-geolocation-service';
-import { position } from "native-base/lib/typescript/theme/styled-system";
-import { prjTransform } from '../../untils/mapFunc';
-import { generateID, getCurrentDate, getCurrentTime } from "../../untils/dateTimeFunc";
+import {position} from 'native-base/lib/typescript/theme/styled-system';
+import {
+  calculatePolylineLength,
+  prjTransform,
+  roundNumber,
+} from '../../untils/mapFunc';
+import {
+  generateID,
+  getCurrentDate,
+  getCurrentTime,
+} from '../../untils/dateTimeFunc';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -18,7 +43,8 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { readObjData, storeObjData } from "../../untils/storageData";
+import {readObjData, storeObjData} from '../../untils/storageData';
+import {useFocusEffect} from '@react-navigation/native';
 // import {
 //   generateID,
 //   getCurrentDate,
@@ -41,7 +67,7 @@ const commonObj = {
   editting: true,
 };
 
-const MapScreen = ({ navigation }) => {
+const MapScreen = ({navigation}) => {
   const actions = [
     {
       text: 'Thêm điểm mới',
@@ -90,20 +116,39 @@ const MapScreen = ({ navigation }) => {
   const toggleTool = useSharedValue(false);
   const [redoArr, setRedoArr] = useState([]);
   const [geojson, setGeojson] = useState([]);
+  const [currPrj, setCurrPrj] = useState(defaultProjection);
+  const [objectDraw, setObjectDraw] = useState(true);
+  const [linegonMarker, setLinegonMarker] = useState([]);
+  const [distanceCur, setDistanceCur] = useState(0);
+
+  const getGeoProject = async () => {
+    const allPrj = await readObjData('geoProject');
+
+    if (allPrj) {
+      setGeojson(allPrj.geojson);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      getGeoProject();
+    }, []),
+  );
+
   const addPoint = (latitude, longitude) => {
-    // const transformToCurrPrj = prjTransform(
-    //   4326,
-    //   currPrj?.epsg_code,
-    //   longitude,
-    //   latitude,
-    // );
+    const transformToCurrPrj = prjTransform(
+      4326,
+      currPrj?.epsg_code,
+      longitude,
+      latitude,
+    );
 
     const newPoint = {
       type: 'Feature',
       properties: {
         'marker-color': commonColor.pending,
         id: generateID(3),
-        coor: { lat: latitude, lon: longitude },
+        coor: {lat: transformToCurrPrj[1], lon: transformToCurrPrj[0]},
         ...commonObj,
       },
       geometry: {
@@ -114,7 +159,56 @@ const MapScreen = ({ navigation }) => {
 
     return newPoint;
   };
+  const addLine = (latitude, longitude, isEditting) => {
+    let lastItem = undoArr[undoArr?.length - 1];
+    const checkEditting = lastItem?.properties?.editting;
 
+    if (checkEditting) {
+      const updateCoor = [
+        ...lastItem?.geometry?.coordinates,
+        [longitude, latitude],
+      ];
+      const distance = calculatePolylineLength(updateCoor);
+      setDistanceCur(distance);
+      console.log(distance);
+      const updateProps = {
+        ...lastItem?.properties,
+        editting: isEditting,
+        distance: `${roundNumber(distance, 2)} m`,
+      };
+
+      const newLine = {
+        ...lastItem,
+        properties: updateProps,
+        geometry: {
+          coordinates: updateCoor,
+          type: 'LineString',
+        },
+      };
+
+      return {newLine, checkEditting};
+    }
+
+    const newLine = {
+      type: 'Feature',
+      properties: {
+        id: generateID(3),
+        stroke: commonColor.pending,
+        'stroke-width': 4,
+        distance: '',
+        ...commonObj,
+      },
+      geometry: {
+        coordinates: [[longitude, latitude]],
+        type: 'LineString',
+      },
+    };
+
+    return {newLine, checkEditting};
+  };
+  const addPointForPolinegon = coor => {
+    setLinegonMarker([...linegonMarker, coor]);
+  };
   let type_view = MAP_TYPES.STANDARD;
   if (type_map === 0) {
     type_view = MAP_TYPES.STANDARD;
@@ -132,6 +226,19 @@ const MapScreen = ({ navigation }) => {
 
     setUndoArr([...newUndo, newPoint]);
   };
+  const drawLine = (x, y, isEditting) => {
+    let newUndo = [...undoArr];
+
+    const newLine = addLine(y, x, isEditting);
+
+    if (newLine.checkEditting) {
+      newUndo.splice(newUndo?.length - 1, 1, newLine.newLine);
+
+      setUndoArr(newUndo);
+    } else {
+      setUndoArr([...undoArr, newLine.newLine]);
+    }
+  };
 
   const createObject = (latitude, longitude, isEditting) => {
     switch (toolMode) {
@@ -140,26 +247,25 @@ const MapScreen = ({ navigation }) => {
         break;
       case 'LineString':
         drawLine(longitude, latitude, isEditting);
-        addPointForPolinegon({ latitude, longitude });
+        addPointForPolinegon({latitude, longitude});
         break;
       case 'Polygon':
         drawPolygon(longitude, latitude, isEditting);
-        addPointForPolinegon({ latitude, longitude });
+        addPointForPolinegon({latitude, longitude});
         break;
     }
   };
 
   const handleToolPress = e => {
     const coor = e?.nativeEvent?.coordinate;
-    console.log(e);
     createObject(coor?.latitude, coor?.longitude, true);
   };
-  const handlePickMode = (name) => {
+  const handlePickMode = name => {
     setToolMode(name);
     toggleTool.value = true;
-  }
+  };
   const clearToolData = useCallback(() => {
-    // setLinegonMarker([]);
+    setLinegonMarker([]);
     setUndoArr([]);
     setRedoArr([]);
   }, []);
@@ -168,8 +274,7 @@ const MapScreen = ({ navigation }) => {
     let undoTemp = [...undoArr];
 
     const lastItem = undoTemp.pop();
-    const { coordinates, type } = lastItem.geometry;
-    console.log(coordinates);
+    const {coordinates, type} = lastItem.geometry;
 
     // if (type != 'Point') {
     //   handleTempMarker(coordinates, type, true);
@@ -182,8 +287,7 @@ const MapScreen = ({ navigation }) => {
     let redoTemp = [...redoArr];
 
     const firstItem = redoTemp.shift();
-    const { coordinates, type } = firstItem.geometry;
-    console.log(coordinates);
+    const {coordinates, type} = firstItem.geometry;
 
     // if (type != 'Point') {
     //   handleTempMarker(coordinates, type, false);
@@ -192,28 +296,17 @@ const MapScreen = ({ navigation }) => {
     setRedoArr(redoTemp);
   };
   const storeObj = useCallback(async obj => {
-    console.log(obj.geojson)
     try {
       const allPrj = await readObjData('geoProject');
-      const updatedPrj = Object.fromEntries(
-        Object.entries(allPrj).map(([date, projects]) => [
-          date,
-          projects.map(prj => {
-            if (prj.id == id) {
-              return {
-                ...prj,
-                ...obj,
-              };
+      const updatedPrj =
+        allPrj === null
+          ? {
+              geojson: obj.geojson,
             }
-
-            return prj;
-          }),
-        ]),
-      );
-
+          : {geojson: [...allPrj.geojson, ...obj.geojson]};
       await storeObjData('geoProject', updatedPrj);
     } catch (error) {
-      console.log(error);
+      console.log('err', error);
     }
   }, []);
 
@@ -240,7 +333,7 @@ const MapScreen = ({ navigation }) => {
 
       setGeojson(newGeo);
 
-      const obj = { geojson: newGeo };
+      const obj = {geojson: newGeo};
 
       handleOffMapTool();
       await storeObj(obj);
@@ -262,7 +355,7 @@ const MapScreen = ({ navigation }) => {
     // handleGetInfoRegion(x, y, coor?.latitude, coor?.longitude);
   };
   const handleLongPressMap = e => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
+    const {latitude, longitude} = e.nativeEvent.coordinate;
 
     createObject(latitude, longitude, false);
   };
@@ -274,17 +367,12 @@ const MapScreen = ({ navigation }) => {
   };
 
   const handlePress = e => {
-    if (
-      toolMode &&
-      toolMode !== 'GPSLineString' &&
-      toolMode !== 'GPSPolygon'
-    ) {
+    if (toolMode && toolMode !== 'GPSLineString' && toolMode !== 'GPSPolygon') {
       handleToolPress(e);
     } else {
       handleInfoPress(e);
     }
-
-  }
+  };
   const handleOffMapTool = () => {
     toggleTool.value = false;
     setToolMode(null);
@@ -306,12 +394,10 @@ const MapScreen = ({ navigation }) => {
     );
 
     return {
-      opacity: withSpring(opacity, { duration: 400 }),
-      bottom: withTiming(bottom, { duration: 400 }),
+      opacity: withSpring(opacity, {duration: 400}),
+      bottom: withTiming(bottom, {duration: 400}),
     };
   });
-
-
 
   // const [mapType, setMapType] = useState(MAP_TYPES.HYBRID);
   return (
@@ -319,15 +405,14 @@ const MapScreen = ({ navigation }) => {
       <MapView
         ref={mapViewRef}
         style={styles.mapContainer}
-        provider={"google"}
+        provider={'google'}
         initialRegion={VNCoor}
         mapType={type_view}
         // onLongPress={handleLongPressMap}
         onPress={handlePress}
         showsScale={true}
         showsUserLocation={true}
-        showsMyLocationButton={true}
-      >
+        showsMyLocationButton={true}>
         {undoArr?.length != 0 && (
           <Geojson
             geojson={{
@@ -336,15 +421,30 @@ const MapScreen = ({ navigation }) => {
             }}
           />
         )}
+        {objectDraw && geojson?.length != 0 && (
+          <Geojson
+            geojson={{
+              type: 'FeatureCollection',
+              features: geojson,
+            }}
+            // tappable={toolMode ? false : true}
+            // onPress={handleOpenEdit}
+          />
+        )}
       </MapView>
-      <Animated.View style={[styles.edittingContainer, toolContainerStyle]} >
-        <View style={{ justifyContent: 'space-around', flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+      <Animated.View style={[styles.edittingContainer, toolContainerStyle]}>
+        <View
+          style={{
+            justifyContent: 'space-around',
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
           <Pressable onPress={handleOffMapTool}>
             <Image
               source={require('../../assets/images/miniClose.png')}
               alt="close"
               size={6}
-
             />
           </Pressable>
           <Pressable onPress={handleUndo}>
@@ -352,7 +452,6 @@ const MapScreen = ({ navigation }) => {
               source={require('../..//assets/images/undo.png')}
               alt="undo"
               size={6}
-
             />
           </Pressable>
           <Pressable onPress={handleRedo}>
@@ -360,7 +459,6 @@ const MapScreen = ({ navigation }) => {
               source={require('../..//assets/images/redo.png')}
               alt="redo"
               size={6}
-
             />
           </Pressable>
           {/* <Pressable onPress={targetUserLocation} >
@@ -371,12 +469,11 @@ const MapScreen = ({ navigation }) => {
 
             />
           </Pressable> */}
-          <Pressable onPress={handleSaveGeojson} >
+          <Pressable onPress={handleSaveGeojson}>
             <Image
               source={require('../..//assets/images/save.png')}
               alt="save"
               size={6}
-
             />
           </Pressable>
         </View>
@@ -384,32 +481,51 @@ const MapScreen = ({ navigation }) => {
       <FloatingAction
         actions={actions}
         position="right"
-        distanceToEdge={{ vertical: 100, horizontal: 10 }}
+        distanceToEdge={{vertical: 100, horizontal: 10}}
         buttonSize={48}
         actionsPaddingTopBottom={3}
-        onPressItem={(name) => handlePickMode(name)}
+        onPressItem={name => handlePickMode(name)}
       />
 
-      <HStack safeAreaBottom justifyContent="center" height={Dimension.setHeight(8)} >
-        <Pressable cursor="pointer" py="5" flex={1} onPress={() => navigation.navigate("SelectWMSLayerScreen")}>
+      <HStack
+        safeAreaBottom
+        justifyContent="center"
+        height={Dimension.setHeight(8)}>
+        <Pressable
+          cursor="pointer"
+          py="5"
+          flex={1}
+          onPress={() => navigation.navigate('SelectWMSLayerScreen')}>
           <Text>Bản đồ</Text>
         </Pressable>
         <Spacer />
-        <Pressable cursor="pointer" py="5" flex={1} onPress={() => console.log("Mbtibles")}>
+        <Pressable
+          cursor="pointer"
+          py="5"
+          flex={1}
+          onPress={() => console.log('Mbtibles')}>
           <Text>Mbtiles</Text>
         </Pressable>
         <Spacer />
-        <Pressable cursor="pointer" py="5" flex={1} onPress={() => navigation.navigate("ListFirePoint")}>
+        <Pressable
+          cursor="pointer"
+          py="5"
+          flex={1}
+          onPress={() => navigation.navigate('ListFirePoint')}>
           <Text>Điểm cháy</Text>
         </Pressable>
         <Spacer />
-        <Pressable cursor="pointer" py="5" flex={1} onPress={() => console.log("Liên hệ")}>
+        <Pressable
+          cursor="pointer"
+          py="5"
+          flex={1}
+          onPress={() => console.log('Liên hệ')}>
           <Text>Liên hệ</Text>
         </Pressable>
       </HStack>
     </Box>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   mapContainer: {
@@ -428,6 +544,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
     borderRadius: 30,
   },
-})
+});
 
 export default MapScreen;

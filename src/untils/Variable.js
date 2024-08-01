@@ -12,3 +12,10 @@ export const VNCoor = {
   latitudeDelta: LATITUDE_DELTA,
   longitudeDelta: ASPECT_RATIO * LATITUDE_DELTA,
 };
+
+export const defaultProjection = {
+  epsg_code: 4326,
+  id: 1,
+  province: 'Toàn quốc',
+  zone: 'WGS84',
+};
