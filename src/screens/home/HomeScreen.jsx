@@ -1,93 +1,84 @@
-import {
-  Box,
-  Button,
-  Center,
-  Container,
-  Image,
-  Pressable,
-  View,
-  VStack,
-} from 'native-base';
-import React from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
-import Carousel, { Pagination } from 'react-native-snap-carousel';
+import React, {useCallback, useRef, useState} from 'react';
+import {Box, Button, Center, Pressable, View, VStack} from 'native-base';
+import {Dimensions, StyleSheet} from 'react-native';
+import Carousel from 'react-native-snap-carousel';
+import FastImage from 'react-native-fast-image';
 
 export const SLIDER_WIDTH = Dimensions.get('window').width;
 export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.9);
+const DOT_SIZE = 8;
 
 const data = [
-  'https://plus.unsplash.com/premium_photo-1665311513813-8576a87a251f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8ciVFMSVCQiVBQm5nfGVufDB8fDB8fHww',
-  'https://plus.unsplash.com/premium_photo-1710795018356-4b22df77cf8f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjF8fHIlRTElQkIlQUJuZ3xlbnwwfHwwfHx8MA%3D%3D',
-  'https://plus.unsplash.com/premium_photo-1663946448065-967d72d58b4f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mjh8fHIlRTElQkIlQUJuZ3xlbnwwfHwwfHx8MA%3D%3D',
-  'https://wallpaperaccess.com/full/317501.jpg',
+  require('../../assets/images/1.jpg'),
+  require('../../assets/images/2.jpg'),
+  require('../../assets/images/3.jpg'),
+  require('../../assets/images/4.jpg'),
 ];
 
-export default function HomeScreen({ navigation }) {
-  const [index, setIndex] = React.useState(0);
-  console.log(index);
-  const isCarousel = React.useRef(null);
-  const CarouselCardItem = ({ item, index }) => {
-    return (
+const MemoizedPagination = React.memo(({dotsLength, activeDotIndex}) => (
+  <View style={styles.paginationContainer}>
+    {Array.from({length: dotsLength}).map((_, index) => (
+      <View
+        key={index}
+        style={[
+          styles.dotStyle,
+          index === activeDotIndex && {
+            backgroundColor: 'rgba(255, 255, 255, 0.92)',
+          },
+        ]}
+      />
+    ))}
+  </View>
+));
+
+export default function HomeScreen({navigation}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const isCarousel = useRef(null);
+
+  const renderItem = useCallback(
+    ({item}) => (
       <View shadow={4} borderRadius={6} overflow="hidden">
-        <Image
-          source={{
-            uri: item,
-          }}
-          alt="Alternate Text"
-          key={index}
-          w="100%"
-          height={200}
+        <FastImage
+          source={item}
+          style={{width: '100%', height: 200}}
+          resizeMode={FastImage.resizeMode.cover}
         />
       </View>
-    );
-  };
+    ),
+    [],
+  );
+
   return (
     <Box>
       <VStack space={4} alignItems="center" marginTop={4}>
-        <Center alignItems="center" w="100%" style={{ position: 'relative' }}>
+        <Center alignItems="center" w="100%">
           <Carousel
-            style={styles.carousel}
-            layout="default"
-            autoplay
-            autoplayTimeout={2000}
-            loop
             ref={isCarousel}
             data={data}
-            renderItem={CarouselCardItem}
+            renderItem={renderItem}
             sliderWidth={SLIDER_WIDTH}
             itemWidth={ITEM_WIDTH}
-          // onSnapToItem={index => setIndex(index)}
+            onSnapToItem={index => setActiveIndex(index)}
+            autoplay
+            loop
+            pagingEnabled
           />
-          {/* <Pagination
+          <MemoizedPagination
             dotsLength={data.length}
-            activeDotIndex={index}
-            carouselRef={isCarousel}
-            dotStyle={{
-              width: 5,
-              height: 5,
-              borderRadius: 5,
-              marginHorizontal: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.92)',
-            }}
-            inactiveDotOpacity={0.4}
-            inactiveDotScale={0.6}
-            tappableDots={true}
-          /> */}
+            activeDotIndex={activeIndex}
+          />
         </Center>
         <Center alignItems="center" width="100%" paddingX={5}>
           <Pressable
             w="100%"
-            onPress={() => navigation.navigate('MapScreen', { firePoint: [] })}
+            onPress={() => navigation.navigate('MapScreen', {firePoint: []})}
             shadow={4}
             rounded={6}
             overflow="hidden">
-            <Image
-              source={{
-                uri: 'https://wallpaperaccess.com/full/317501.jpg',
-              }}
-              alt="Alternate Text"
-              w="100%"
-              height={200}
+            <FastImage
+              source={{uri: 'https://wallpaperaccess.com/full/317501.jpg'}}
+              style={{width: '100%', height: 200}}
+              resizeMode={FastImage.resizeMode.cover}
             />
           </Pressable>
         </Center>
@@ -106,5 +97,17 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  pagination: {},
+  paginationContainer: {
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+  },
+  dotStyle: {
+    width: DOT_SIZE,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
+    marginHorizontal: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
 });

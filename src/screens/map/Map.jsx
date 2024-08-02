@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'native-base';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import Colors from '../../contans/Colors';
 import {
   Dimensions,
@@ -19,12 +19,18 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
-import MapView, { Callout, Geojson, MAP_TYPES, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { defaultProjection, VNCoor } from '../../untils/Variable';
+import MapView, {
+  Callout,
+  Geojson,
+  MAP_TYPES,
+  Marker,
+  PROVIDER_GOOGLE,
+} from 'react-native-maps';
+import {defaultProjection, VNCoor} from '../../untils/Variable';
 import Dimension from '../../contans/Dimension';
-import { FloatingAction } from 'react-native-floating-action';
+import {FloatingAction} from 'react-native-floating-action';
 import Geolocation from 'react-native-geolocation-service';
-import { position } from 'native-base/lib/typescript/theme/styled-system';
+import {position} from 'native-base/lib/typescript/theme/styled-system';
 import {
   calculateAreaPolygonMeter,
   calculatePolylineLength,
@@ -44,11 +50,11 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { readObjData, storeObjData } from '../../untils/storageData';
-import { useFocusEffect } from '@react-navigation/native';
+import {readObjData, storeObjData} from '../../untils/storageData';
+import {useFocusEffect} from '@react-navigation/native';
 import ObjectDetail from '../../components/ObjectDeltail';
-import { RoundBtn } from '../../components/AllBtn';
-import { rowAlignCenter } from '../../contans/CssFE';
+import {RoundBtn} from '../../components/AllBtn';
+import {rowAlignCenter} from '../../contans/CssFE';
 // import {
 //   generateID,
 //   getCurrentDate,
@@ -79,10 +85,8 @@ const locationConfig = {
   showLocationDialog: true,
 };
 
-
-const MapScreen = ({ navigation, route }) => {
-
-  const { firePoint } = route.params;
+const MapScreen = ({navigation, route}) => {
+  const {firePoint} = route.params;
 
   const actions = [
     {
@@ -117,8 +121,6 @@ const MapScreen = ({ navigation, route }) => {
     },
   ];
 
-
-
   const mapViewRef = useRef(null);
   const detailObj = useRef(null);
   const watchIdRef = useRef(null);
@@ -137,12 +139,16 @@ const MapScreen = ({ navigation, route }) => {
   const [areaCur, setAreaCur] = useState(0);
   const [objPicker, setObjPicker] = useState(null);
 
-  const getGeoProject = async () => {
-    const allPrj = await readObjData('geoProject');
-    if (allPrj) {
-      setGeojson(allPrj.geojson);
+  const getGeoProject = useCallback(async () => {
+    try {
+      const allPrj = await readObjData('geoProject');
+      if (allPrj) {
+        setGeojson(allPrj.geojson);
+      }
+    } catch (error) {
+      console.error('Failed to load geo project:', error);
     }
-  };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -184,7 +190,7 @@ const MapScreen = ({ navigation, route }) => {
       properties: {
         'marker-color': commonColor.pending,
         id: generateID(3),
-        coor: { lat: transformToCurrPrj[1], lon: transformToCurrPrj[0] },
+        coor: {lat: transformToCurrPrj[1], lon: transformToCurrPrj[0]},
         ...commonObj,
       },
       geometry: {
@@ -221,7 +227,7 @@ const MapScreen = ({ navigation, route }) => {
         },
       };
 
-      return { newLine, checkEditting };
+      return {newLine, checkEditting};
     }
 
     const newLine = {
@@ -239,7 +245,7 @@ const MapScreen = ({ navigation, route }) => {
       },
     };
 
-    return { newLine, checkEditting };
+    return {newLine, checkEditting};
   };
   const addPolygon = (latitude, longitude, isEditting) => {
     let lastItem = undoArr[undoArr?.length - 1];
@@ -266,7 +272,7 @@ const MapScreen = ({ navigation, route }) => {
         },
       };
 
-      return { newPolygon, checkEditting };
+      return {newPolygon, checkEditting};
     }
 
     const newPolygon = {
@@ -287,7 +293,7 @@ const MapScreen = ({ navigation, route }) => {
       },
     };
 
-    return { newPolygon, checkEditting };
+    return {newPolygon, checkEditting};
   };
   const addPointForPolinegon = coor => {
     setLinegonMarker([...linegonMarker, coor]);
@@ -303,21 +309,30 @@ const MapScreen = ({ navigation, route }) => {
     type_view = MAP_TYPES.HYBRID;
   }
 
-  const handleTempMarker = (coor, type, state) => {
-    let markerTemp = [...linegonMarker];
-    const length = type === 'LineString' ? -coor?.length : -coor[0]?.length;
-    const coorArr = type === 'LineString' ? coor : coor[0];
-
-    if (state) {
-      markerTemp = markerTemp.slice(0, length);
-    } else {
-      coorArr.forEach(item => {
-        markerTemp.push({ latitude: item[1], longitude: item[0] });
+  const handleTempMarker = useCallback(
+    (coor, type, state) => {
+      console.log('handleTempMarker called', {
+        coor,
+        type,
+        state,
+        linegonMarker,
       });
-    }
+      let markerTemp = [...linegonMarker];
+      const length = type === 'LineString' ? -coor?.length : -coor[0]?.length;
+      const coorArr = type === 'LineString' ? coor : coor[0];
 
-    setLinegonMarker(markerTemp);
-  };
+      if (state) {
+        markerTemp = markerTemp.slice(0, length);
+      } else {
+        coorArr.forEach(item => {
+          markerTemp.push({latitude: item[1], longitude: item[0]});
+        });
+      }
+
+      setLinegonMarker(markerTemp);
+    },
+    [linegonMarker],
+  );
 
   const drawPoint = (x, y) => {
     let newUndo = [...undoArr];
@@ -359,11 +374,11 @@ const MapScreen = ({ navigation, route }) => {
         break;
       case 'LineString':
         drawLine(longitude, latitude, isEditting);
-        addPointForPolinegon({ latitude, longitude });
+        addPointForPolinegon({latitude, longitude});
         break;
       case 'Polygon':
         drawPolygon(longitude, latitude, isEditting);
-        addPointForPolinegon({ latitude, longitude });
+        addPointForPolinegon({latitude, longitude});
         break;
     }
   };
@@ -386,7 +401,7 @@ const MapScreen = ({ navigation, route }) => {
     let undoTemp = [...undoArr];
 
     const lastItem = undoTemp.pop();
-    const { coordinates, type } = lastItem.geometry;
+    const {coordinates, type} = lastItem.geometry;
 
     if (type != 'Point') {
       handleTempMarker(coordinates, type, true);
@@ -399,7 +414,7 @@ const MapScreen = ({ navigation, route }) => {
     let redoTemp = [...redoArr];
 
     const firstItem = redoTemp.shift();
-    const { coordinates, type } = firstItem.geometry;
+    const {coordinates, type} = firstItem.geometry;
 
     if (type != 'Point') {
       handleTempMarker(coordinates, type, false);
@@ -412,7 +427,7 @@ const MapScreen = ({ navigation, route }) => {
       const allPrj = await readObjData('geoProject');
       const updatedPrj = {
         geojson: obj.geojson,
-      }
+      };
       await storeObjData('geoProject', updatedPrj);
     } catch (error) {
       console.log('err', error);
@@ -422,7 +437,7 @@ const MapScreen = ({ navigation, route }) => {
   const handleWatchPosition = useCallback(() => {
     return Geolocation.watchPosition(
       position => {
-        let { longitude, latitude, accuracy } = position.coords;
+        let {longitude, latitude, accuracy} = position.coords;
         console.log('watch position', longitude, latitude);
 
         const centerTransformCoor = prjTransform(
@@ -486,7 +501,7 @@ const MapScreen = ({ navigation, route }) => {
       const newGeo = [...geojson, ...geoSaved];
       setGeojson(newGeo);
 
-      const obj = { geojson: newGeo };
+      const obj = {geojson: newGeo};
 
       handleOffMapTool();
       await storeObj(obj);
@@ -508,7 +523,7 @@ const MapScreen = ({ navigation, route }) => {
     // handleGetInfoRegion(x, y, coor?.latitude, coor?.longitude);
   };
   const handleLongPressMap = e => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
+    const {latitude, longitude} = e.nativeEvent.coordinate;
 
     createObject(latitude, longitude, false);
   };
@@ -553,8 +568,8 @@ const MapScreen = ({ navigation, route }) => {
     );
 
     return {
-      opacity: withSpring(opacity, { duration: 400 }),
-      bottom: withTiming(bottom, { duration: 400 }),
+      opacity: withSpring(opacity, {duration: 400}),
+      bottom: withTiming(bottom, {duration: 400}),
     };
   });
   const handleEdit = useCallback(
@@ -568,7 +583,7 @@ const MapScreen = ({ navigation, route }) => {
           return item;
         });
 
-        const newObj = { geojson: geojsonEdited };
+        const newObj = {geojson: geojsonEdited};
 
         setGeojson(geojsonEdited);
         await storeObj(newObj);
@@ -601,8 +616,8 @@ const MapScreen = ({ navigation, route }) => {
     );
 
     return {
-      opacity: withTiming(opacity, { duration: 300 }),
-      transform: [{ scale: withTiming(scale, { duration: 200 }) }],
+      opacity: withTiming(opacity, {duration: 300}),
+      transform: [{scale: withTiming(scale, {duration: 200})}],
     };
   });
   const handleToggleInfo = () => {
@@ -623,8 +638,8 @@ const MapScreen = ({ navigation, route }) => {
     );
 
     return {
-      opacity: withTiming(opacity, { duration: 333 }),
-      transform: [{ scale: withTiming(scale, { duration: 333 }) }],
+      opacity: withTiming(opacity, {duration: 333}),
+      transform: [{scale: withTiming(scale, {duration: 333})}],
     };
   });
   const handleRemoveObj = useCallback(
@@ -634,7 +649,7 @@ const MapScreen = ({ navigation, route }) => {
           item => item.properties.id !== idObj,
         );
 
-        const obj = { geojson: objRemove };
+        const obj = {geojson: objRemove};
         setGeojson(objRemove);
         await storeObj(obj);
       } catch (error) {
@@ -658,10 +673,9 @@ const MapScreen = ({ navigation, route }) => {
         showsScale={true}
         showsUserLocation={true}
         showsMyLocationButton={true}>
-
         {firePoint?.length != 0 &&
           firePoint?.map((item, index) => {
-            const imgSrc = require('../../assets/images/confirmed_fire_not_forest.png')
+            const imgSrc = require('../../assets/images/confirmed_fire_not_forest.png');
             switch (item.properties.XACMINH) {
               case '1':
                 imgSrc = require('../../assets/images/fire_notconfirmed.png');
@@ -670,7 +684,7 @@ const MapScreen = ({ navigation, route }) => {
                 imgSrc = require('../../assets/images/confirmed_fire_forest.png');
                 break;
               case '3':
-                imgSrc = require('../../assets/images/confirmed_not_fire.png')
+                imgSrc = require('../../assets/images/confirmed_not_fire.png');
                 break;
             }
             return (
@@ -678,20 +692,24 @@ const MapScreen = ({ navigation, route }) => {
                 key={index}
                 coordinate={{
                   latitude: Number(item.geometry.coordinates[1]),
-                  longitude: Number(item.geometry.coordinates[0])
+                  longitude: Number(item.geometry.coordinates[0]),
                 }}
-                anchor={{ x: 0.5, y: 0.5 }}
+                anchor={{x: 0.5, y: 0.5}}
                 zIndex={10}
                 tappable={false}>
-
-                <Image source={imgSrc} alt="target" style={{ width: 50, height: 50 }} resizeMode="cover" />
+                <Image
+                  source={imgSrc}
+                  alt="target"
+                  style={{width: 50, height: 50}}
+                  resizeMode="cover"
+                />
                 <Callout
-                  style={{ padding: 5 }}
-                // onPress={() =>
-                //   this.props.navigation.navigate("detailFirePoint", {
-                //     item: marker,
-                //   })
-                // }
+                  style={{padding: 5}}
+                  // onPress={() =>
+                  //   this.props.navigation.navigate("detailFirePoint", {
+                  //     item: marker,
+                  //   })
+                  // }
                 >
                   <View style={styles.bubble}>
                     <View>
@@ -725,9 +743,14 @@ const MapScreen = ({ navigation, route }) => {
                   latitude: item?.latitude,
                   longitude: item?.longitude,
                 }}
-                anchor={{ x: 0.5, y: 0.5 }}
+                anchor={{x: -0.1}}
                 tappable={false}>
-                <Image source={(require('../../assets/images/target.png'))} alt="target" style={{ width: 18, height: 18 }} />
+                <Image
+                  source={require('../../assets/images/pin.png')}
+                  alt="target"
+                  style={{width: 20, height: 20}}
+                  resizeMode="cover"
+                />
               </Marker>
             );
           })}
@@ -800,7 +823,7 @@ const MapScreen = ({ navigation, route }) => {
         {toolMode == 'LineString' && (
           <Text style={styles.txtInfoDraw}>
             Khoảng cách:{' '}
-            <Text style={{ fontWeight: 'bold', color: Colors.DEFAULT_BLUE }}>
+            <Text style={{fontWeight: 'bold', color: Colors.DEFAULT_BLUE}}>
               {Math.round(distanceCur)}
             </Text>{' '}
             m
@@ -809,7 +832,7 @@ const MapScreen = ({ navigation, route }) => {
         {toolMode == 'Polygon' && (
           <Text style={styles.txtInfoDraw}>
             Diện tích:{' '}
-            <Text style={{ fontWeight: 'bold', color: Colors.DEFAULT_BLUE }}>
+            <Text style={{fontWeight: 'bold', color: Colors.DEFAULT_BLUE}}>
               {Math.round(areaCur) / 10000}
             </Text>{' '}
             Ha
@@ -817,12 +840,12 @@ const MapScreen = ({ navigation, route }) => {
         )}
       </Animated.View>
 
-      <View style={{ position: 'absolute', top: Dimension.setWidth(20) }} >
+      <View style={{position: 'absolute', top: Dimension.setWidth(20)}}>
         <Animated.View
           style={[
             toggleBtnStyle,
             StyleSheet.absoluteFill,
-            { alignItems: 'flex-start' },
+            {alignItems: 'flex-start'},
           ]}>
           <RoundBtn
             icon={require('../../assets/images/maximize.png')}
@@ -832,9 +855,8 @@ const MapScreen = ({ navigation, route }) => {
           />
         </Animated.View>
 
-        <Animated.View
-          style={[styles.coorInfoContainer, locationInfoStyle]}>
-          <View style={[rowAlignCenter, { justifyContent: 'space-between' }]}>
+        <Animated.View style={[styles.coorInfoContainer, locationInfoStyle]}>
+          <View style={[rowAlignCenter, {justifyContent: 'space-between'}]}>
             <Text style={styles.titleInfoText}>{currPrj?.zone}</Text>
             <RoundBtn
               icon={require('../../assets/images/down.png')}
@@ -844,9 +866,7 @@ const MapScreen = ({ navigation, route }) => {
               event={handleToggleInfo}
             />
           </View>
-          <Text style={styles.coorInfoText}>
-            Khu vực: {currPrj?.province}
-          </Text>
+          <Text style={styles.coorInfoText}>Khu vực: {currPrj?.province}</Text>
           <Text style={styles.coorInfoText}>
             X người dùng: {roundNumber(currCoor?.xUser, 3)}
           </Text>
@@ -869,14 +889,17 @@ const MapScreen = ({ navigation, route }) => {
         safeAreaBottom
         justifyContent="center"
         height={Dimension.setHeight(8)}
-        px="10"
-      >
+        px="10">
         <Pressable
           cursor="pointer"
           alignItems="center"
           py="2"
           onPress={() => navigation.navigate('SelectWMSLayerScreen')}>
-          <Image source={require('../../assets/images/map.png')} style={{ width: 30, height: 30 }} alt='bản đồ' />
+          <Image
+            source={require('../../assets/images/map.png')}
+            style={{width: 30, height: 30}}
+            alt="bản đồ"
+          />
           <Text>Bản đồ</Text>
         </Pressable>
         <Spacer />
@@ -885,7 +908,11 @@ const MapScreen = ({ navigation, route }) => {
           alignItems="center"
           py="2"
           onPress={() => console.log('Mbtibles')}>
-          <Image source={require('../../assets/images/mbtiles.png')} style={{ width: 30, height: 30 }} alt='Mbtiles' />
+          <Image
+            source={require('../../assets/images/mbtiles.png')}
+            style={{width: 30, height: 30}}
+            alt="Mbtiles"
+          />
           <Text>Mbtiles</Text>
         </Pressable>
         <Spacer />
@@ -894,7 +921,11 @@ const MapScreen = ({ navigation, route }) => {
           alignItems="center"
           py="2"
           onPress={() => navigation.navigate('ListFirePoint')}>
-          <Image source={require('../../assets/images/fire-point.png')} style={{ width: 30, height: 30 }} alt='điểm cháy' />
+          <Image
+            source={require('../../assets/images/fire-point.png')}
+            style={{width: 30, height: 30}}
+            alt="điểm cháy"
+          />
           <Text>Điểm cháy</Text>
         </Pressable>
         <Spacer />
@@ -903,10 +934,22 @@ const MapScreen = ({ navigation, route }) => {
           alignItems="center"
           py="2"
           onPress={() => console.log('Liên hệ')}>
-          <Image source={require('../../assets/images/contact.png')} style={{ width: 30, height: 30 }} alt='liên hệ ' />
+          <Image
+            source={require('../../assets/images/contact.png')}
+            style={{width: 30, height: 30}}
+            alt="liên hệ "
+          />
           <Text>Liên hệ</Text>
         </Pressable>
       </HStack>
+      <FloatingAction
+        actions={actions}
+        position="right"
+        distanceToEdge={{vertical: 100, horizontal: 10}}
+        buttonSize={48}
+        actionsPaddingTopBottom={3}
+        onPressItem={name => handlePickMode(name)}
+      />
       {objPicker && (
         <ObjectDetail
           ref={detailObj}
@@ -918,14 +961,6 @@ const MapScreen = ({ navigation, route }) => {
           onChangeBottom={handleBottomSheetClose}
         />
       )}
-      <FloatingAction
-        actions={actions}
-        position="right"
-        distanceToEdge={{ vertical: 100, horizontal: 10 }}
-        buttonSize={48}
-        actionsPaddingTopBottom={3}
-        onPressItem={name => handlePickMode(name)}
-      />
     </Box>
   );
 };
@@ -981,8 +1016,8 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   bubble: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    backgroundColor: '#fff',
     width: 150,
   },
   name: {
