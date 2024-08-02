@@ -33,13 +33,11 @@ import { getFirePointDate } from '../redux/apiRequest';
 // import { mainURL } from "../untils/Variable";
 
 const ListFirePoint = ({ navigation }) => {
-  const [groupValues, setGroupValues] = useState([]);
   const [toggleDatePicker, setToggleDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dailyCheck, setDailyCheck] = useState(true);
   const [hisCheck, setHisCheck] = useState(false);
   const [isLoadData, setLoadData] = useState(false);
-  const [disabled, setDisable] = useState(false);
   const [startDay, setStartDay] = useState(formatDate(new Date()));
   const [endDay, setEndDay] = useState(formatDate(new Date()));
   const [checkPick, setCheckPick] = useState(null);
@@ -54,12 +52,6 @@ const ListFirePoint = ({ navigation }) => {
     setIsChecked(v);
   };
 
-  const handDownData = () => {
-    compareDate(startDay, endDay)
-      ? console.log('tải dữ liệu')
-      : console.log('Ngày kết thúc không hợp lệ');
-  };
-
   const handlePickDate = date => {
     setToggleDatePicker(false);
     if (checkPick) {
@@ -71,8 +63,9 @@ const ListFirePoint = ({ navigation }) => {
     }
   };
 
+
   const handleDownData = async () => {
-    // setRefresh(true);
+    setLoading(true);
     try {
       const data = {
         dateStart: formatDateToPost(startDay),
@@ -80,16 +73,18 @@ const ListFirePoint = ({ navigation }) => {
       };
       if (compareDate(startDay, endDay)) {
         const res = await getFirePointDate(data);
-        console.log(res.length);
         setFirePoint(res);
-        setLoadData(true);
+        if (res.length > 0) {
+          setLoadData(true);
+        }
       } else {
         console.log("ko hợp lệ")
       }
-      // setRefresh(false);
+      setLoading(false);
+      console.log(firePoint.length);
     } catch (error) {
       console.log(error);
-      // setRefresh(false);
+      setLoading(false);
     }
   };
 
@@ -99,12 +94,12 @@ const ListFirePoint = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         width={Dimension.setWidth(90)}>
         <VStack space={4}>
-          <Loader
+          {/* <Loader
             title="Đang tải dữ liệu..."
             size="small"
             loading={loading}
             color="#007bff"
-          />
+          /> */}
           <Box>
             <VStack w="100%" space={4}>
               <Badge
@@ -200,11 +195,11 @@ const ListFirePoint = ({ navigation }) => {
                 }}
               />
               {!isLoadData ? (
-                <Button w="100%" size="lg" shadow="3" onPress={handleDownData}>
+                <Button isLoading={loading} isLoadingText='Đang tải dữ liệu' w="100%" size="lg" shadow="3" onPress={handleDownData}>
                   Tải dữ liệu điểm cháy
                 </Button>
               ) : (
-                <Button w="100%" size="lg" shadow="3" onPress={handDownData}>
+                <Button w="100%" size="lg" shadow="3" onPress={() => navigation.navigate('MapScreen', { firePoint: firePoint })}>
                   Mở trong bản đồ
                 </Button>
               )}

@@ -9,8 +9,8 @@ import {
   VStack,
 } from 'native-base';
 import React from 'react';
-import {Dimensions, StyleSheet} from 'react-native';
-import Carousel, {Pagination} from 'react-native-snap-carousel';
+import { Dimensions, StyleSheet } from 'react-native';
+import Carousel, { Pagination } from 'react-native-snap-carousel';
 
 export const SLIDER_WIDTH = Dimensions.get('window').width;
 export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.9);
@@ -22,11 +22,11 @@ const data = [
   'https://wallpaperaccess.com/full/317501.jpg',
 ];
 
-export default function HomeScreen({navigation}) {
+export default function HomeScreen({ navigation }) {
   const [index, setIndex] = React.useState(0);
   console.log(index);
   const isCarousel = React.useRef(null);
-  const CarouselCardItem = ({item, index}) => {
+  const CarouselCardItem = ({ item, index }) => {
     return (
       <View shadow={4} borderRadius={6} overflow="hidden">
         <Image
@@ -44,7 +44,7 @@ export default function HomeScreen({navigation}) {
   return (
     <Box>
       <VStack space={4} alignItems="center" marginTop={4}>
-        <Center alignItems="center" w="100%" style={{position: 'relative'}}>
+        <Center alignItems="center" w="100%" style={{ position: 'relative' }}>
           <Carousel
             style={styles.carousel}
             layout="default"
@@ -56,7 +56,7 @@ export default function HomeScreen({navigation}) {
             renderItem={CarouselCardItem}
             sliderWidth={SLIDER_WIDTH}
             itemWidth={ITEM_WIDTH}
-            // onSnapToItem={index => setIndex(index)}
+          // onSnapToItem={index => setIndex(index)}
           />
           {/* <Pagination
             dotsLength={data.length}
@@ -77,7 +77,7 @@ export default function HomeScreen({navigation}) {
         <Center alignItems="center" width="100%" paddingX={5}>
           <Pressable
             w="100%"
-            onPress={() => navigation.navigate('MapScreen')}
+            onPress={() => navigation.navigate('MapScreen', { firePoint: [] })}
             shadow={4}
             rounded={6}
             overflow="hidden">

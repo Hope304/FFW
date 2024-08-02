@@ -27,6 +27,7 @@ export const generateID = num => {
   return idGenerate;
 };
 
+
 export const getCurrentTime = () => {
   const today = new Date();
   const hour =
@@ -44,3 +45,4 @@ export const getCurrentDate = () => {
 
   return date;
 };
+
