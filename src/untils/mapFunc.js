@@ -1,5 +1,141 @@
 import proj from 'proj4';
 import epsg from 'epsg-to-proj';
+import RNFS from 'react-native-fs';
+import SQLite from 'react-native-sqlite-storage';
+const fileTypeAllow = ['mbtiles'];
+
+const androidPath = '/data/user/0/com.ninhbinh_ffw/databases';
+const platformPath =
+  Platform.OS === 'android' ? androidPath : RNFS.DocumentDirectoryPath;
+
+const readMbtileFile = async (file) => {
+  try {
+    const { name, uri } = file[0];
+
+    const filePath = platformPath + '/' + name;
+    const fileExist = await RNFS.exists(filePath);
+
+    if (!fileExist) {
+      await RNFS.copyFile(uri, filePath);
+    }
+
+    const mbtileFolderPath = platformPath + `/mbtiles`;
+    const mbtileFilePath = mbtileFolderPath + '/' + name.split('.')[0];
+
+    const isExist = await RNFS.exists(mbtileFolderPath);
+    if (!isExist) {
+      await RNFS.mkdir(mbtileFolderPath);
+    }
+
+    await RNFS.mkdir(mbtileFilePath);
+
+    const db = await SQLite.openDatabase({
+      name: name,
+      location: 'Documents',
+    });
+    let coor;
+
+    await db.transaction(tx => {
+      tx.executeSql(
+        'SELECT DISTINCT zoom_level FROM tiles',
+        [],
+        (tx, { rows }) => {
+          const zoomLength = rows?.length;
+
+          for (let i = 0; i < zoomLength; i++) {
+            const rowZoom = rows.item(i);
+
+            const zoomPath = mbtileFilePath + '/' + rowZoom.zoom_level;
+            RNFS.mkdir(zoomPath);
+
+            tx.executeSql(
+              'SELECT DISTINCT tile_column FROM tiles WHERE zoom_level = ' +
+              rowZoom.zoom_level,
+              [],
+              (tx, tileColumn) => {
+                const len_column = tileColumn.rows?.length;
+                for (let j = 0; j < len_column; j++) {
+                  const rowColumn = tileColumn.rows.item(j);
+
+                  const columnPath = zoomPath + '/' + rowColumn.tile_column;
+                  RNFS.mkdir(columnPath);
+
+                  tx.executeSql(
+                    'SELECT tile_row, tile_data FROM tiles WHERE zoom_level = ' +
+                    rowZoom.zoom_level +
+                    ' AND tile_column = ' +
+                    rowColumn.tile_column,
+                    [],
+                    (tx, data) => {
+                      const len = data.rows?.length;
+                      for (let k = 0; k < len; k++) {
+                        const y = parseInt(
+                          Math.pow(2, parseInt(rowZoom.zoom_level)) -
+                          parseInt(data.rows.item(k).tile_row) -
+                          1,
+                        );
+
+                        const imgPath = columnPath + `/${y}.png`;
+
+                        RNFS.writeFile(
+                          imgPath,
+                          data.rows.item(k).tile_data,
+                          'base64',
+                        );
+                      }
+                    },
+                  );
+                }
+              },
+            );
+          }
+        },
+      );
+
+      tx.executeSql('SELECT * FROM metadata', [], (tx, { rows }) => {
+        const data = rows.item(rows?.length - 1);
+        const coordinate = data.value.split(',');
+
+        for (let i = 0; i < rows?.length; i++) {
+          console.log(rows.item(i));
+        }
+
+        coor = { longitude: coordinate[0], latitude: coordinate[1] };
+      });
+    });
+
+    return { mbtiles: mbtileFilePath, coordinate: coor };
+  } catch (error) {
+    return false;
+  }
+};
+const detectType = file => {
+  return file.split('.').pop();
+};
+const detectFilePicker = async (file) => {
+  const type = detectType(file[0].name);
+
+  if (!fileTypeAllow.includes(type)) {
+    return 'Định dạng file không được hỗ trợ!';
+  }
+
+  const fileFormat = {
+    name: file[0].name,
+    size: file[0].size,
+    path: file[0].uri,
+    type: type,
+    isVisible: true,
+  };
+
+  const { coordinate, mbtiles } = await readMbtileFile(file);
+
+  return {
+    ...fileFormat,
+    commonCoor: coordinate,
+    mbtiles: mbtiles,
+  };
+};
+
 
 function calculateAreaInSquareMeters(x1, x2, y1, y2) {
   return (y1 * x2 - x1 * y2) / 2;
@@ -103,4 +239,4 @@ const calculateAreaPolygonMeter = arr => {
   return areaCalc;
 };
 
-export { prjTransform, calculateDistance, calculatePolylineLength, roundNumber, calculateAreaPolygonMeter };
+export { prjTransform, calculateDistance, calculatePolylineLength, roundNumber, calculateAreaPolygonMeter, detectFilePicker };
