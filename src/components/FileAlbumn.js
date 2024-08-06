@@ -19,7 +19,6 @@ import {
 } from 'react-native-responsive-screen';
 import DocumentPicker from 'react-native-document-picker';
 import ConfirmActions from './ConfirmActions';
-import ObjectStyleCustom from './ObjectStyleCustom';
 import RNFS from 'react-native-fs';
 import Dimension from '../contans/Dimension';
 import { ToastAlert } from './Toast';
@@ -29,11 +28,11 @@ import { detectFilePicker } from '../untils/mapFunc';
 import { rowAlignCenter } from '../contans/CssFE';
 import { shadowIOS } from '../contans/propsIOS';
 
-const mainColor = '#ccca3d';
+const mainColor = Colors.PRIMARY_BLUE;
 const fileImg = {
-  mbtiles: { img: require('../assets/images/mbtiles.png'), color: Colors.LIGHT_RED },
+  mbtiles: { img: require('../assets/images/mbtilesfile.png'), color: Colors.LIGHT_RED },
 };
-const androidPath = '/data/user/0/com.ninhbinh_ffw/databases';
+const androidPath = '/data/user/0/com.ffw/databases';
 const path =
   Platform.OS === 'android' ? androidPath : RNFS.DocumentDirectoryPath;
 
@@ -66,7 +65,6 @@ const FileAlbumn = forwardRef((props, ref) => {
   const handleAddFile = async () => {
     try {
       const res = await DocumentPicker.pickMultiple();
-
       const fileDetect = await detectFilePicker(res);
 
       if (typeof fileDetect === 'string') {
@@ -345,7 +343,7 @@ const FileAlbumn = forwardRef((props, ref) => {
 
       <View style={styles.cameraContaier}>
         <RoundBtn
-          icon={require('../assets/images/add_file.png')}
+          icon={require('../assets/images/addfile.png')}
           iconColor={Colors.WHITE}
           iconSize={28}
           btnColor={mainColor}
@@ -418,7 +416,7 @@ const styles = StyleSheet.create({
   fileSizeText: {
     // fontFamily: Fonts.SF_LIGHT,
     fontSize: wp('3.3%'),
-    color: Colors.TEXT_COLOR1,
+    color: Colors.TEXT_COLOR,
   },
 
   typeImg: {

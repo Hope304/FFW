@@ -25,6 +25,7 @@ import MapView, {
   MAP_TYPES,
   Marker,
   PROVIDER_GOOGLE,
+  UrlTile,
 } from 'react-native-maps';
 import { defaultProjection, VNCoor } from '../../untils/Variable';
 import Dimension from '../../contans/Dimension';
@@ -176,9 +177,22 @@ const MapScreen = ({ navigation, route }) => {
     }
 
     if (Platform.OS === 'android') {
-      PermissionsAndroid.request(
+      PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
+        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      ]);
+    } else {
+      request(PERMISSIONS.IOS.LOCATION_ALWAYS);
+      messaging().requestPermission({
+        alert: true,
+        announcement: true,
+        badge: true,
+        carPlay: false,
+        provisional: false,
+        sound: true,
+      });
     }
     watchIdRef.current = handleWatchPosition();
     // fetchVn2000Prj();
@@ -447,11 +461,12 @@ const MapScreen = ({ navigation, route }) => {
   };
   const storeObj = useCallback(async obj => {
     try {
-      const allPrj = await readObjData('geoProject');
-      const updatedPrj = {
-        geojson: obj.geojson,
-      };
-      await storeObjData('geoProject', updatedPrj);
+      console.log('file', obj);
+      // const allPrj = await readObjData('geoProject');
+      // const updatedPrj = {
+      //   geojson: obj.geojson,
+      // };
+      // await storeObjData('geoProject', updatedPrj);
     } catch (error) {
       console.log('err', error);
     }
